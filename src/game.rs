@@ -98,6 +98,7 @@ pub struct GameState {
     pub input: PlayerInput,
     pub enemies: Vec<EnemyFish>,
     pub enemy_spawner: EnemySpawner,
+    pub is_victory: bool, // 是否胜利（成为霸主）
 }
 
 impl Default for GameState {
@@ -110,6 +111,7 @@ impl Default for GameState {
             input: PlayerInput::default(),
             enemies: Vec::new(),
             enemy_spawner: EnemySpawner::default(),
+            is_victory: false, // 初始为失败状态
         }
     }
 }

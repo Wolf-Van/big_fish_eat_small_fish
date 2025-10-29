@@ -1,4 +1,11 @@
 {
-  "records": [],
-  "next_id": 3
+  "records": [
+    {
+      "id": 9,
+      "score": 69,
+      "timestamp": "2025-10-29T11:36:56.506617900+08:00",
+      "player_size": 0.9399997
+    }
+  ],
+  "next_id": 10
 }

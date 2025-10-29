@@ -154,12 +154,18 @@ impl BigFishApp {
             delta_time,
             &mut self.game_state.enemies,
             screen_size.x,
-            screen_size.y
+            screen_size.y,
+            self.game_state.player_fish.size // 传递玩家大小
         );
 
         // 更新所有敌人
         for enemy in &mut self.game_state.enemies {
             enemy.update(delta_time);
+        }
+        
+        // 调试信息：打印敌人数量
+        if self.game_state.enemies.len() == 0 {
+            println!("警告：当前没有敌人鱼！玩家大小: {:.2}", self.game_state.player_fish.size);
         }
     }
 
@@ -169,6 +175,20 @@ impl BigFishApp {
         let player_size = self.game_state.player_fish.size * 30.0;
         let player_fish_size = self.game_state.player_fish.size;
 
+        // 检查霸主胜利条件：玩家成为最大鱼（超过Legendary级别）
+        if player_fish_size > 1.2 { // 比Legendary(1.1)更大
+            // 设置胜利标志
+            self.game_state.is_victory = true;
+            // 保存游戏记录
+            self.database.add_record(
+                self.game_state.score,
+                self.game_state.player_fish.size
+            );
+            let _ = self.database.save(); // 忽略保存错误
+            self.current_state = crate::app::AppState::GameOver; // 使用GameOver状态显示胜利
+            return;
+        }
+
         // 检查与每个敌人的碰撞
         for enemy in &mut self.game_state.enemies {
             if enemy.check_collision_with_player(player_pos, player_size) {
@@ -176,11 +196,9 @@ impl BigFishApp {
                 if player_fish_size > enemy.size_type.get_size() {
                     // 玩家吃掉敌人
                     self.game_state.score += enemy.size_type.get_score();
-                    // 使用对数增长：成长速度随等级递减，增加可玩性
-                    let base_growth = 0.15; // 基础成长值
-                    let size_factor = self.game_state.player_fish.size;
-                    let growth_rate = base_growth / (1.0 + size_factor * 0.3); // 对数衰减
-                    self.game_state.player_fish.size += growth_rate;
+                    // 成长改为按敌人等级：每级0.01（Tiny=0.01 … Legendary=0.10）
+                    let growth = enemy.size_type.growth_increment();
+                    self.game_state.player_fish.size += growth;
                     self.game_state.size = self.game_state.player_fish.size; // 同步大小
                     enemy.be_eaten();
                 } else {

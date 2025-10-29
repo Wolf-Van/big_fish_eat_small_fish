@@ -234,60 +234,64 @@ impl UI {
                 
                 ui.add_space(20.0);
                 
-                // 记录列表
-                let records = database.get_records().clone(); // 克隆记录以避免借用冲突
-                if records.is_empty() {
-                    ui.label(egui::RichText::new("暂无游戏记录")
-                        .size(20.0)
-                        .color(egui::Color32::YELLOW));
-                } else {
-                    // 显示记录表格 - 使用垂直布局
-                    for record in records.iter().rev() { // 最新的在前面
-                        ui.horizontal_centered(|ui| {
-                            // 分数
-                            ui.label(egui::RichText::new(format!("分数: {}", record.score))
-                                .size(16.0)
-                                .color(egui::Color32::WHITE));
-                            
-                            ui.add_space(20.0);
-                            
-                            // 大小
-                            ui.label(egui::RichText::new(format!("大小: {:.1}", record.player_size))
-                                .size(16.0)
-                                .color(egui::Color32::WHITE));
-                            
-                            ui.add_space(20.0);
-                            
-                            // 时间
-                            ui.label(egui::RichText::new(format!("时间: {}", record.timestamp.format("%Y-%m-%d %H:%M:%S")))
-                                .size(16.0)
-                                .color(egui::Color32::WHITE));
-                            
-                            ui.add_space(20.0);
-                            
-                            // 删除按钮
-                            if ui.small_button("删除").clicked() {
-                                database.delete_record(record.id);
-                                let _ = database.save(); // 忽略保存错误
+                // 使用滚动区域来显示记录，确保按钮始终可见
+                let available_height = ui.available_height() - 100.0; // 为按钮预留空间
+                egui::ScrollArea::vertical()
+                    .max_height(available_height)
+                    .show(ui, |ui| {
+                        // 记录列表
+                        let records = database.get_records().clone(); // 克隆记录以避免借用冲突
+                        if records.is_empty() {
+                            ui.horizontal_centered(|ui| {
+                                ui.label(egui::RichText::new("暂无游戏记录")
+                                    .size(20.0)
+                                    .color(egui::Color32::YELLOW));
+                            });
+                        } else {
+                            // 显示记录表格 - 使用垂直布局
+                            for record in records.iter().rev() { // 最新的在前面
+                                ui.horizontal_centered(|ui| {
+                                    // 分数
+                                    ui.label(egui::RichText::new(format!("分数: {}", record.score))
+                                        .size(16.0)
+                                        .color(egui::Color32::WHITE));
+                                    
+                                    ui.add_space(20.0);
+                                    
+                                    // 大小
+                                    ui.label(egui::RichText::new(format!("大小: {:.1}", record.player_size))
+                                        .size(16.0)
+                                        .color(egui::Color32::WHITE));
+                                    
+                                    ui.add_space(20.0);
+                                    
+                                    // 时间
+                                    ui.label(egui::RichText::new(format!("时间: {}", record.timestamp.format("%Y-%m-%d %H:%M:%S")))
+                                        .size(16.0)
+                                        .color(egui::Color32::WHITE));
+                                    
+                                    ui.add_space(20.0);
+                                    
+                                    // 删除按钮
+                                    if ui.small_button("删除").clicked() {
+                                        database.delete_record(record.id);
+                                        let _ = database.save(); // 忽略保存错误
+                                    }
+                                });
+                                
+                                ui.add_space(15.0);
                             }
-                        });
-                        
-                        ui.add_space(15.0);
-                    }
-                }
-                
-                ui.add_space(30.0);
-                
-                // 返回主菜单按钮 - 使用更明确的居中方法
-                ui.allocate_ui_with_layout(
-                    egui::Vec2::new(ui.available_width(), 50.0),
-                    egui::Layout::top_down(egui::Align::Center),
-                    |ui| {
-                        if ui.add_sized([150.0, 50.0], egui::Button::new("返回主菜单")).clicked() {
-                            *current_state = AppState::Home;
                         }
+                    });
+                
+                ui.add_space(20.0);
+                
+                // 返回主菜单按钮 - 固定在底部
+                ui.horizontal_centered(|ui| {
+                    if ui.add_sized([150.0, 50.0], egui::Button::new("返回主菜单")).clicked() {
+                        *current_state = AppState::Home;
                     }
-                );
+                });
             });
         });
     }
@@ -359,17 +363,41 @@ impl UI {
             ui.vertical_centered(|ui| {
                 ui.add_space(100.0);
                 
-                // 游戏结束标题
-                ui.heading(egui::RichText::new("游戏结束")
-                    .size(48.0)
-                    .color(egui::Color32::WHITE));
-                
-                ui.add_space(50.0);
-                
-                // 最终分数
-                ui.label(egui::RichText::new(format!("最终分数: {}", game_state.score))
-                    .size(24.0)
-                    .color(egui::Color32::YELLOW));
+                if game_state.is_victory {
+                    // 胜利界面
+                    ui.heading(egui::RichText::new("🎉 恭喜胜利！🎉")
+                        .size(48.0)
+                        .color(egui::Color32::GOLD));
+                    
+                    ui.add_space(20.0);
+                    
+                    ui.label(egui::RichText::new("你已经成为这片水域的霸主！")
+                        .size(24.0)
+                        .color(egui::Color32::YELLOW));
+                    
+                    ui.add_space(30.0);
+                    
+                    // 最终分数和大小
+                    ui.label(egui::RichText::new(format!("最终分数: {}", game_state.score))
+                        .size(24.0)
+                        .color(egui::Color32::WHITE));
+                    
+                    ui.label(egui::RichText::new(format!("最终大小: {:.1}", game_state.size))
+                        .size(24.0)
+                        .color(egui::Color32::WHITE));
+                } else {
+                    // 失败界面
+                    ui.heading(egui::RichText::new("游戏结束")
+                        .size(48.0)
+                        .color(egui::Color32::WHITE));
+                    
+                    ui.add_space(50.0);
+                    
+                    // 最终分数
+                    ui.label(egui::RichText::new(format!("最终分数: {}", game_state.score))
+                        .size(24.0)
+                        .color(egui::Color32::YELLOW));
+                }
                 
                 ui.add_space(30.0);
                 
