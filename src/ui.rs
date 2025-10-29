@@ -278,12 +278,16 @@ impl UI {
                 
                 ui.add_space(30.0);
                 
-                // 返回主菜单按钮
-                ui.horizontal_centered(|ui| {
-                    if ui.add_sized([150.0, 50.0], egui::Button::new("返回主菜单")).clicked() {
-                        *current_state = AppState::Home;
+                // 返回主菜单按钮 - 使用更明确的居中方法
+                ui.allocate_ui_with_layout(
+                    egui::Vec2::new(ui.available_width(), 50.0),
+                    egui::Layout::top_down(egui::Align::Center),
+                    |ui| {
+                        if ui.add_sized([150.0, 50.0], egui::Button::new("返回主菜单")).clicked() {
+                            *current_state = AppState::Home;
+                        }
                     }
-                });
+                );
             });
         });
     }
