@@ -6,12 +6,16 @@ use crate::database::GameDatabase;
 
 pub struct UI {
     pub renderer: Renderer,
+    pub show_continue_game: bool, // 控制继续游戏弹窗
+    pub need_new_game: bool, // 控制重新开始游戏
 }
 
 impl Default for UI {
     fn default() -> Self {
         Self {
             renderer: Renderer::default(),
+            show_continue_game: false,
+            need_new_game: false,
         }
     }
 }
@@ -39,30 +43,34 @@ impl UI {
                 
                 ui.add_space(80.0); // 标题和按钮之间的间距
                 
-                // 添加四个按钮（垂直排列）
+                // 添加按钮（垂直排列，含继续游戏/开始游戏/其它）
                 ui.vertical_centered(|ui| {
+                    // 继续游戏按钮
+                    if ui.add_sized([150.0, 50.0], egui::Button::new("继续游戏")).clicked() {
+                        self.show_continue_game = true;
+                    }
+
+                    ui.add_space(20.0);
                     // 开始游戏按钮
                     if ui.add_sized([150.0, 50.0], egui::Button::new("开始游戏")).clicked() {
                         *current_state = AppState::Game;
+                        self.need_new_game = true;
                     }
-                    
+
                     ui.add_space(20.0);
-                    
-                    // 游戏设置按钮
+                    // 游戏设置
                     if ui.add_sized([150.0, 50.0], egui::Button::new("游戏设置")).clicked() {
                         *current_state = AppState::Settings;
                     }
-                    
+
                     ui.add_space(20.0);
-                    
-                    // 历史记录按钮
+                    // 历史记录
                     if ui.add_sized([150.0, 50.0], egui::Button::new("历史记录")).clicked() {
                         *current_state = AppState::History;
                     }
-                    
+
                     ui.add_space(20.0);
-                    
-                    // 退出游戏按钮
+                    // 退出游戏
                     if ui.add_sized([150.0, 50.0], egui::Button::new("退出游戏")).clicked() {
                         std::process::exit(0);
                     }
@@ -130,14 +138,7 @@ impl UI {
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.add_space(20.0);
-                    
-                    // 返回主菜单按钮
-                    if ui.add_sized([120.0, 40.0], egui::Button::new("返回主菜单")).clicked() {
-                        *current_state = AppState::Home;
-                    }
-                    
-                    ui.add_space(20.0);
-                    
+                    // 去除返回主菜单按钮，只留暂停按钮
                     // 暂停游戏按钮
                     if ui.add_sized([120.0, 40.0], egui::Button::new("暂停游戏")).clicked() {
                         *current_state = crate::app::AppState::GamePaused;

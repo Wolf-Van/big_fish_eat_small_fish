@@ -4,6 +4,7 @@ use crate::game::GameState;
 use crate::ui::UI;
 use crate::input::InputHandler;
 use crate::database::GameDatabase;
+use std::fs;
 
 fn setup_custom_fonts(ctx: &egui::Context) {
     // 使用egui-chinese-font库来设置中文字体
@@ -27,6 +28,7 @@ pub struct BigFishApp {
     pub input_handler: InputHandler,
     pub needs_reset: bool,
     pub database: GameDatabase,
+    pub has_saved_game: bool, // 是否有存档
 }
 
 impl Default for BigFishApp {
@@ -38,6 +40,7 @@ impl Default for BigFishApp {
             input_handler: InputHandler::default(),
             needs_reset: false,
             database: GameDatabase::load(),
+            has_saved_game: false,
         }
     }
 }
@@ -47,6 +50,38 @@ impl eframe::App for BigFishApp {
         match self.current_state {
             AppState::Home => {
                 self.ui.show_home_page(ctx, &mut self.current_state);
+                // 动态判断存档按文件存取
+                self.has_saved_game = fs::metadata("game_save.json").is_ok();
+                if self.ui.show_continue_game {
+                    if self.has_saved_game {
+                        if let Some(loaded) = Self::load_game_state() {
+                            self.game_state = loaded;
+                            self.current_state = AppState::Game;
+                            self.ui.show_continue_game = false;
+                        } else {
+                            egui::Window::new("提示").show(ctx, |ui| {
+                                ui.label("存档损坏，请重新开始游戏");
+                                if ui.button("确定").clicked() {
+                                    self.ui.show_continue_game = false;
+                                }
+                            });
+                        }
+                    } else {
+                        egui::Window::new("提示").show(ctx, |ui| {
+                            ui.label("当前没有存档，请点击开始游戏");
+                            if ui.button("确定").clicked() {
+                                self.ui.show_continue_game = false;
+                            }
+                        });
+                    }
+                }
+                // 新开游戏清理存档
+                if self.ui.need_new_game {
+                    self.game_state = GameState::default();
+                    self.has_saved_game = false;
+                    let _ = fs::remove_file("game_save.json");
+                    self.ui.need_new_game = false;
+                }
             }
             AppState::Settings => {
                 self.ui.show_settings_page(ctx, &mut self.current_state);
@@ -59,6 +94,7 @@ impl eframe::App for BigFishApp {
                 if self.needs_reset {
                     self.game_state = GameState::default();
                     self.needs_reset = false;
+                    let _ = fs::remove_file("game_save.json"); // 重新开始清理旧进度
                 }
                 
                 // 处理输入，检查是否需要暂停
@@ -70,9 +106,13 @@ impl eframe::App for BigFishApp {
                 self.ui.show_game_page(ctx, &self.game_state, &mut self.current_state);
             }
             AppState::GamePaused => {
+                // 自动保存暂停状态
+                let _ = Self::save_game_state(&self.game_state);
                 self.ui.show_pause_page(ctx, &self.game_state, &mut self.current_state);
             }
             AppState::GameOver => {
+                // 游戏结束自动清理存档
+                let _ = fs::remove_file("game_save.json");
                 self.ui.show_game_over_page(ctx, &self.game_state, &mut self.current_state, &mut self.needs_reset);
             }
         }
@@ -80,6 +120,20 @@ impl eframe::App for BigFishApp {
 }
 
 impl BigFishApp {
+    fn save_game_state(game_state: &GameState) -> Result<(), Box<dyn std::error::Error>> {
+        let s = serde_json::to_string(game_state)?;
+        fs::write("game_save.json", s)?;
+        Ok(())
+    }
+
+    fn load_game_state() -> Option<GameState> {
+        if let Ok(s) = fs::read_to_string("game_save.json") {
+            serde_json::from_str(&s).ok()
+        } else {
+            None
+        }
+    }
+
     // 更新游戏状态
     fn update_game_state(&mut self, ctx: &egui::Context) {
         let delta_time = ctx.input(|i| i.stable_dt);

@@ -1,9 +1,25 @@
 use eframe::egui::Vec2;
 use crate::enemy::{EnemyFish, EnemySpawner};
+use serde::{Serialize, Deserialize};
+
+// Vec2 serialize helpers
+pub mod vec2_serde {
+    use super::*;
+    pub fn serialize<S>(v: &eframe::egui::Vec2, s: S) -> Result<S::Ok, S::Error> where S: serde::Serializer {
+        (v.x, v.y).serialize(s)
+    }
+    pub fn deserialize<'de, D>(d: D) -> Result<eframe::egui::Vec2, D::Error> where D: serde::Deserializer<'de> {
+        let (x, y) = <(f32, f32) as serde::Deserialize>::deserialize(d)?;
+        Ok(eframe::egui::Vec2 { x, y })
+    }
+}
 
 // 玩家鱼类
+#[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerFish {
+    #[serde(with = "vec2_serde")]
     pub position: Vec2,        // 位置
+    #[serde(with = "vec2_serde")]
     pub velocity: Vec2,        // 速度
     pub size: f32,             // 大小
     pub health: i32,           // 血量
@@ -72,6 +88,7 @@ impl PlayerFish {
 }
 
 // 玩家输入结构
+#[derive(Serialize, Deserialize, Clone)]
 pub struct PlayerInput {
     pub move_up: bool,
     pub move_down: bool,
@@ -90,6 +107,7 @@ impl Default for PlayerInput {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone)]
 pub struct GameState {
     pub health: i32,
     pub size: f32,

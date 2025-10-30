@@ -1,7 +1,8 @@
 use eframe::egui::Vec2;
+use serde::{Serialize, Deserialize};
 
 // 敌人鱼的大小等级
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize)]
 pub enum EnemySize {
     Tiny,      // 1级，1分
     Small,     // 2级，2分
@@ -95,15 +96,18 @@ impl EnemySize {
 }
 
 // 敌人鱼的移动方向
-#[derive(Clone, Copy, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
 pub enum EnemyDirection {
     LeftToRight,  // 从左边进入，向右移动
     RightToLeft,  // 从右边进入，向左移动
 }
 
 // 敌人鱼结构
+#[derive(Serialize, Deserialize, Clone)]
 pub struct EnemyFish {
+    #[serde(with = "crate::game::vec2_serde")]
     pub position: Vec2,
+    #[serde(with = "crate::game::vec2_serde")]
     pub velocity: Vec2,
     pub size_type: EnemySize,
     pub direction: EnemyDirection,
@@ -173,6 +177,7 @@ impl EnemyFish {
 }
 
 // 敌人生成器
+#[derive(Serialize, Deserialize, Clone)]
 pub struct EnemySpawner {
     pub spawn_timer: f32,
     pub spawn_interval: f32,
